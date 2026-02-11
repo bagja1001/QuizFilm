@@ -47,7 +47,7 @@ html, body {
   margin: 0;
   padding: 0;
   height: 100%;
-  overflow: hidden;
+  overflow-x: hidden;
 }
 
 body {
@@ -102,9 +102,9 @@ body::after {
 #root {
   position: relative;
   z-index: 1;
-  height: 100%;
+  min-height: 100%;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
 }
 
