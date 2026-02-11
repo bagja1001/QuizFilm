@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-  decodeHTML,
-  shuffleArray,
-  formatTime,
-  getProgressPercentage
+    decodeHTML,
+    shuffleArray,
+    formatTime,
+    getProgressPercentage
 } from '../utils/quizHelpers';
 import { QUIZ_CONFIG, STORAGE_KEYS, TIMING, ANSWER_OPTION_START_CODE } from '../constants';
 import './Quiz.css';
@@ -104,24 +104,51 @@ const Quiz = ({ user, onComplete, onLogout, savedProgress }) => {
     }, [questions, currentIndex, answers, timeLeft, loading]);
 
     const handleAnswerSelect = (answer) => {
-        if (selectedAnswer) return; // Prevent double selection
-
-        setSelectedAnswer(answer);
-
-        // Save answer
-        const newAnswers = { ...answers, [questions[currentIndex].id]: answer };
-        setAnswers(newAnswers);
-
-        // Auto advance to next question after a short delay
-        setTimeout(() => {
-            if (currentIndex < questions.length - 1) {
-                setCurrentIndex(currentIndex + 1);
-                setSelectedAnswer(null);
-            } else {
-                handleComplete();
-            }
-        }, TIMING.AUTO_ADVANCE_DELAY);
+        // Toggle: Jika klik jawaban yang sama, cancel/hapus jawaban
+        if (selectedAnswer === answer) {
+            setSelectedAnswer(null);
+            // Hapus dari answers state
+            const newAnswers = { ...answers };
+            delete newAnswers[questions[currentIndex].id];
+            setAnswers(newAnswers);
+        } else {
+            setSelectedAnswer(answer);
+            // Save answer
+            const newAnswers = { ...answers, [questions[currentIndex].id]: answer };
+            setAnswers(newAnswers);
+        }
     };
+
+    const handleNext = () => {
+        if (currentIndex < questions.length - 1) {
+            const nextIndex = currentIndex + 1;
+            setCurrentIndex(nextIndex);
+            // Load jawaban yang sudah tersimpan (jika ada)
+            setSelectedAnswer(answers[questions[nextIndex]?.id] || null);
+        }
+    };
+
+    const handlePrevious = () => {
+        if (currentIndex > 0) {
+            const prevIndex = currentIndex - 1;
+            setCurrentIndex(prevIndex);
+            // Load jawaban yang sudah tersimpan (jika ada)
+            setSelectedAnswer(answers[questions[prevIndex]?.id] || null);
+        }
+    };
+
+    const handleFinishQuiz = () => {
+        // Validasi: Pastikan semua soal sudah dijawab
+        if (Object.keys(answers).length < questions.length) {
+            alert('Please answer all questions before finishing the quiz!');
+            return;
+        }
+        handleComplete();
+    };
+
+    const isAllAnswered = Object.keys(answers).length === questions.length;
+    const isFirstQuestion = currentIndex === 0;
+    const isLastQuestion = currentIndex === questions.length - 1;
 
     if (loading) {
         return (
@@ -222,7 +249,6 @@ const Quiz = ({ user, onComplete, onLogout, savedProgress }) => {
                                 key={idx}
                                 className={className}
                                 onClick={() => handleAnswerSelect(option)}
-                                disabled={selectedAnswer !== null}
                             >
                                 <span className="option-letter">
                                     {String.fromCharCode(ANSWER_OPTION_START_CODE + idx)}
@@ -231,6 +257,35 @@ const Quiz = ({ user, onComplete, onLogout, savedProgress }) => {
                             </button>
                         );
                     })}
+                </div>
+
+                {/* Navigation Buttons */}
+                <div className="quiz-navigation">
+                    <button
+                        onClick={handlePrevious}
+                        className="btn btn-secondary nav-btn"
+                        disabled={isFirstQuestion}
+                        style={{ visibility: isFirstQuestion ? 'hidden' : 'visible' }}
+                    >
+                        ← Previous
+                    </button>
+
+                    {!isLastQuestion ? (
+                        <button
+                            onClick={handleNext}
+                            className="btn btn-primary nav-btn"
+                        >
+                            Next →
+                        </button>
+                    ) : (
+                        <button
+                            onClick={handleFinishQuiz}
+                            className={`btn finish-quiz-btn ${!isAllAnswered ? 'disabled' : ''}`}
+                            disabled={!isAllAnswered}
+                        >
+                            {isAllAnswered ? '✓ Finish Quiz' : `Answer All (${Object.keys(answers).length}/${questions.length})`}
+                        </button>
+                    )}
                 </div>
             </div>
         </div>
